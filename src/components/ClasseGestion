@@ -1,0 +1,98 @@
+import React, { useEffect, useState } from 'react';
+import { Button, Table, Modal, Form } from 'react-bootstrap';
+import axios from 'axios';
+
+const ClasseGestion = () => {
+    const [classes, setClasses] = useState([]);
+    const [show, setShow] = useState(false);
+    const [niveau, setNiveau] = useState('');
+    const [idFormation, setIdFormation] = useState('');
+
+    useEffect(() => {
+        fetchClasses();
+    }, []);
+
+    const fetchClasses = async () => {
+        try {
+            const response = await axios.get('http://localhost:8080/classes');
+            setClasses(response.data);
+        } catch (error) {
+            console.error("Erreur lors de la récupération des classes", error);
+        }
+    };
+
+    const handleAdd = async () => {
+        try {
+            await axios.post(`http://localhost:8080/classes/${idFormation}/ajouter`, {
+                niveau,
+                archive: false
+            });
+            fetchClasses();
+            setShow(false);
+            setNiveau('');
+            setIdFormation('');
+        } catch (error) {
+            console.error("Erreur lors de l'ajout de la classe", error);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        try {
+            await axios.delete(`http://localhost:8080/classes/${id}`);
+            fetchClasses();
+        } catch (error) {
+            console.error("Erreur lors de la suppression", error);
+        }
+    };
+
+    return (
+        <div className="container">
+            <h2>Gestion des Classes</h2>
+            <Button variant="primary" onClick={() => setShow(true)}>Ajouter Classe</Button>
+            <Table striped bordered hover className="mt-3">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Niveau</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {classes.map((classe) => (
+                        <tr key={classe.id}>
+                            <td>{classe.id}</td>
+                            <td>{classe.niveau}</td>
+                            <td>
+                                <Button variant="danger" onClick={() => handleDelete(classe.id)}>Supprimer</Button>
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </Table>
+
+            <Modal show={show} onHide={() => setShow(false)}>
+                <Modal.Header closeButton>
+                    <Modal.Title>Ajouter Classe</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <Form>
+                        <Form.Group>
+                            <Form.Label>Niveau</Form.Label>
+                            <Form.Control type="number" value={niveau} onChange={(e) => setNiveau(e.target.value)} />
+                        </Form.Group>
+                        <Form.Group>
+                            <Form.Label>ID Formation</Form.Label>
+                            <Form.Control type="number" value={idFormation} onChange={(e) => setIdFormation(e.target.value)} />
+                        </Form.Group>
+                    </Form>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={() => setShow(false)}>Fermer</Button>
+                    <Button variant="primary" onClick={handleAdd}>Ajouter</Button>
+                </Modal.Footer>
+            </Modal>
+        </div>
+    );
+};
+
+export default ClasseGestion;
