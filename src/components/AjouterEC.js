@@ -31,16 +31,51 @@ const EcManagement = () => {
   }, []);
 
   const handleAddEc = () => {
-    fetch("http://localhost:8080/ecs/${newEc.ue}/ajouter", {
+    // Validation des champs
+    if (!newEc.code || !newEc.intitule || !newEc.coefficient || !newEc.idUE) {
+      alert("Veuillez remplir tous les champs !");
+      return;
+    }
+
+    const ecToSend = {
+      code: newEc.code,
+      intitule: newEc.intitule,
+      CM: Number(newEc.CM),
+      TD: Number(newEc.TD),
+      TP: Number(newEc.TP),
+      coefficient: Number(newEc.coefficient)
+    };
+
+    fetch(`http://localhost:8080/ecs/${newEc.idUE}/ajouter`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newEc)
+      body: JSON.stringify(ecToSend),
     })
-    
-      .then((response) => response.json())
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Erreur HTTP : " + response.status);
+        }
+        return response.json();
+      })
       .then((data) => {
-        setEcs([...ecs, data]);
+        // Rafraîchir la liste des ECs après ajout
+        fetch("http://localhost:8080/ecs")
+          .then((response) => response.json())
+          .then((data) => setEcs(data))
+          .catch((error) => console.error("Erreur lors du rechargement des ECs :", error));
+
         setShowAddModal(false);
+
+        // Réinitialiser le formulaire
+        setNewEc({
+          code: "",
+          intitule: "",
+          CM: "",
+          TD: "",
+          TP: "",
+          coefficient: "",
+          ue: ""
+        });
       })
       .catch((error) => console.error("Erreur lors de l'ajout de l'EC :", error));
   };
@@ -111,7 +146,7 @@ const EcManagement = () => {
         </Modal.Header>
         <Modal.Body>
           <Form>
-          <Form.Group>
+            <Form.Group>
               <Form.Label>Code</Form.Label>
               <Form.Control type="text" onChange={(e) => setNewEc({ ...newEc, code: e.target.value })} />
             </Form.Group>
@@ -137,12 +172,19 @@ const EcManagement = () => {
             </Form.Group>
             <Form.Group>
               <Form.Label>UE</Form.Label>
-              <Form.Control as="select" onChange={(e) => setNewEc({ ...newEc, ue: e.target.value })}>
-                <option value="">Sélectionner une UE</option>
-                {ues.map((ue) => (
-                  <option key={ue.id} value={ue.id}>{ue.intitule}</option>
-                ))}
-              </Form.Control>
+              <Form.Control as="select" onChange={(e) => setNewEc({ ...newEc, idUE: Number(e.target.value) })}>
+  <option value="">Sélectionner une UE</option>
+  {Array.isArray(ues) && ues.length > 0 ? (
+    ues.map((ue) => (
+      <option key={ue.id} value={ue.id}>
+        {ue.intitule}
+      </option>
+    ))
+  ) : (
+    <option disabled>Aucune UE disponible</option>
+  )}
+</Form.Control>
+
             </Form.Group>
           </Form>
         </Modal.Body>
@@ -151,8 +193,8 @@ const EcManagement = () => {
           <Button variant="secondary" onClick={() => setShowAddModal(false)}>Annuler</Button>
         </Modal.Footer>
       </Modal>
+ 
    
-
 
       {/* Modal Modifier */}
       {selectedEc && (
